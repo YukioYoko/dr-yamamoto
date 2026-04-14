@@ -1,0 +1,38 @@
+# Dependencias
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js build y producción
+/.next/
+/out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Variables de Entorno (IMPORTANTE: Nunca las subas a GitHub)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Archivos de sistema
+.DS_Store
+*.pem
+
+# n8n (si llegas a exportar JSONs locales de flujos para pruebas)
+*.n8n.json
