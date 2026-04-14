@@ -1,0 +1,344 @@
+{
+  "name": "Dr. Yamamoto – Chatbot + Google Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dr-yamamoto-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook – Recibir mensaje",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "dr-yamamoto-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').toLowerCase().trim();\nconst sessionId = body.sessionId || 'default';\n\n// Detect intent\nlet intent = 'general';\n\nif (\n  message.includes('cita') ||\n  message.includes('agendar') ||\n  message.includes('reservar') ||\n  message.includes('consulta') ||\n  message.includes('appointment')\n) {\n  intent = 'booking';\n} else if (\n  message.includes('horario') ||\n  message.includes('hora') ||\n  message.includes('disponib') ||\n  message.includes('cuando') ||\n  message.includes('cuándo')\n) {\n  intent = 'schedule';\n} else if (\n  message.includes('especialidad') ||\n  message.includes('cirugía') ||\n  message.includes('cirugia') ||\n  message.includes('servicio') ||\n  message.includes('qué hace') ||\n  message.includes('que hace')\n) {\n  intent = 'specialties';\n} else if (\n  message.includes('precio') ||\n  message.includes('costo') ||\n  message.includes('cuánto') ||\n  message.includes('cuanto') ||\n  message.includes('tarifa')\n) {\n  intent = 'pricing';\n} else if (\n  message.includes('ubicacion') ||\n  message.includes('ubicación') ||\n  message.includes('dirección') ||\n  message.includes('donde') ||\n  message.includes('dónde')\n) {\n  intent = 'location';\n} else if (\n  message.includes('hola') ||\n  message.includes('buenos') ||\n  message.includes('buenas') ||\n  message.includes('hey')\n) {\n  intent = 'greeting';\n}\n\n// Extract date/time hints\nconst datePatterns = [\n  /\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4}/,\n  /lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado/i,\n  /mañana|pasado mañana|hoy/i,\n  /(\\d{1,2})\\s*(am|pm|de la mañana|de la tarde)/i,\n];\nlet dateHint = null;\nfor (const pattern of datePatterns) {\n  const match = message.match(pattern);\n  if (match) { dateHint = match[0]; break; }\n}\n\n// Extract name hint (after 'me llamo' or 'soy')\nconst nameMatch = message.match(/(?:me llamo|soy|mi nombre es)\\s+([A-ZÁÉÍÓÚÑa-záéíóúñ ]+)/i);\nconst nameHint = nameMatch ? nameMatch[1].trim() : null;\n\n// Extract phone\nconst phoneMatch = message.match(/(\\+?\\d[\\d\\s\\-\\.]{8,15}\\d)/);\nconst phoneHint = phoneMatch ? phoneMatch[1] : null;\n\nreturn [{\n  json: {\n    originalMessage: body.message,\n    sessionId,\n    intent,\n    dateHint,\n    nameHint,\n    phoneHint,\n    lowerMessage: message,\n  }\n}];\n"
+      },
+      "id": "intent-detector",
+      "name": "Detectar Intención",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "booking",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-booking",
+      "name": "¿Es solicitud de cita?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "schedule",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-schedule",
+      "name": "¿Pregunta horarios?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 620]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "specialties",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-specialties",
+      "name": "¿Especialidades?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 840]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if we have enough info to create the appointment\nconst data = $input.first().json;\nconst hasDate = !!data.dateHint;\nconst hasName = !!data.nameHint;\nconst hasPhone = !!data.phoneHint;\n\nif (!hasName && !hasDate) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: '¡Con mucho gusto agendo tu cita! 📅\\n\\nNecesito algunos datos:\\n\\n• **Tu nombre completo**\\n• **Fecha y hora preferida** (Lu–Sa, 10am–7pm)\\n• **Tu número de teléfono**\\n\\nPor ejemplo: \"Me llamo Juan Pérez, quiero el martes a las 11am, mi teléfono es 33 1234 5678\"',\n    }\n  }];\n}\n\nif (!hasDate) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: `Gracias ${data.nameHint || ''}. ¿Qué fecha y hora prefieres para tu cita? 📅\\n\\nAtendemos **lunes a sábado de 10:00 am a 7:00 pm**.`,\n    }\n  }];\n}\n\nif (!hasName) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: `Perfecto, anotado para el ${data.dateHint}. ¿Me puedes dar tu nombre completo y número de teléfono para confirmar la cita?`,\n    }\n  }];\n}\n\n// We have enough info\nreturn [{\n  json: {\n    ...data,\n    readyToBook: true,\n    output: null,\n  }\n}];\n"
+      },
+      "id": "validate-booking-data",
+      "name": "Validar datos de cita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "leftValue": "={{ $json.readyToBook }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ready-to-book",
+      "name": "¿Datos completos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Parse the date hint into an actual datetime\n// This is a simplified parser — in production connect to an AI node for NLP\nconst today = new Date();\nconst dayMap = {\n  'lunes': 1, 'martes': 2, 'miércoles': 3, 'miercoles': 3,\n  'jueves': 4, 'viernes': 5, 'sábado': 6, 'sabado': 6\n};\n\nlet targetDate = new Date();\n\nconst hint = (data.dateHint || '').toLowerCase();\n\n// Check for day names\nfor (const [dayName, dayNum] of Object.entries(dayMap)) {\n  if (hint.includes(dayName)) {\n    const diff = (dayNum - today.getDay() + 7) % 7 || 7;\n    targetDate = new Date(today);\n    targetDate.setDate(today.getDate() + diff);\n    break;\n  }\n}\n\n// Check for mañana\nif (hint.includes('mañana')) {\n  targetDate = new Date(today);\n  targetDate.setDate(today.getDate() + 1);\n}\n\n// Default time: 10am if none specified\nlet hour = 10;\nconst hourMatch = hint.match(/(\\d{1,2})\\s*(pm|am)?/);\nif (hourMatch) {\n  hour = parseInt(hourMatch[1]);\n  if (hourMatch[2] === 'pm' && hour < 12) hour += 12;\n}\n\n// Clamp to business hours 10–19\nhour = Math.max(10, Math.min(19, hour));\n\ntargetDate.setHours(hour, 0, 0, 0);\nconst endDate = new Date(targetDate);\nendDate.setHours(hour + 1, 0, 0, 0);\n\n// Validate: no Sundays\nif (targetDate.getDay() === 0) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: 'Lo sentimos, los domingos no tenemos consulta. Atendemos **lunes a sábado de 10:00 am a 7:00 pm**. ¿Te acomoda otro día?',\n    }\n  }];\n}\n\nconst dateISO = targetDate.toISOString();\nconst endISO = endDate.toISOString();\nconst friendlyDate = targetDate.toLocaleDateString('es-MX', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\nconst friendlyTime = targetDate.toLocaleTimeString('es-MX', {\n  hour: '2-digit', minute: '2-digit'\n});\n\nreturn [{\n  json: {\n    ...data,\n    dateISO,\n    endISO,\n    friendlyDate,\n    friendlyTime,\n    calendarSummary: `Consulta – ${data.nameHint || 'Paciente'}`,\n    calendarDescription: `Paciente: ${data.nameHint || 'N/D'}\\nTeléfono: ${data.phoneHint || 'N/D'}\\nAgendado vía chatbot web.`,\n  }\n}];\n"
+      },
+      "id": "parse-datetime",
+      "name": "Parsear fecha y hora",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 240]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "event",
+        "operation": "create",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ $json.dateISO }}",
+        "end": "={{ $json.endISO }}",
+        "additionalFields": {
+          "summary": "={{ $json.calendarSummary }}",
+          "description": "={{ $json.calendarDescription }}",
+          "location": "Av. Américas 1254, Piso 3, Guadalajara, Jalisco",
+          "colorId": "5",
+          "attendees": [],
+          "reminders": {
+            "useDefault": false,
+            "overrides": [
+              { "method": "email", "minutes": 1440 },
+              { "method": "popup", "minutes": 60 }
+            ]
+          }
+        }
+      },
+      "id": "google-calendar-create",
+      "name": "Crear evento en Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [1680, 240],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REEMPLAZA_CON_TU_CREDENTIAL_ID",
+          "name": "Google Calendar – Dr. Yamamoto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst name = data.nameHint || 'Estimado paciente';\nconst date = data.friendlyDate || 'la fecha solicitada';\nconst time = data.friendlyTime || '';\n\nreturn [{\n  json: {\n    output: `✅ ¡Cita agendada exitosamente, ${name}!\\n\\n📅 **${date}**\\n🕐 **${time}**\\n📍 Av. Américas 1254, Piso 3, Guadalajara\\n\\nRecibirás un recordatorio por correo 24 horas antes. Si necesitas reagendar o cancelar, llámanos al +52 (33) 1234-5678.\\n\\n¡El Dr. Yamamoto Ishikawa los espera! 🩺`,\n  }\n}];\n"
+      },
+      "id": "booking-success-msg",
+      "name": "Mensaje: Cita confirmada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nreturn [{\n  json: {\n    output: data.output || '¿Podría proporcionarme más detalles para continuar con tu cita?',\n  }\n}];\n"
+      },
+      "id": "ask-more-info",
+      "name": "Solicitar más información",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    output: '🕐 **Horarios de atención:**\\n\\n• Lunes – Viernes: 10:00 am – 7:00 pm\\n• Sábado: 10:00 am – 3:00 pm\\n• Domingo: Cerrado\\n\\n📍 Av. Américas 1254, Piso 3, Guadalajara, Jalisco\\n📞 +52 (33) 1234-5678\\n\\n¿Te gustaría agendar una cita?',\n  }\n}];\n"
+      },
+      "id": "schedule-reply",
+      "name": "Respuesta: Horarios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 620]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    output: '🩺 **Especialidades del Dr. Yamamoto Ishikawa:**\\n\\n• **Cirugía General** – Procedimientos de alta complejidad\\n• **Cirugía Laparoscópica** – Vesícula, apéndice, colon y más\\n• **Cirugía de Urgencias** – Atención inmediata 24/7\\n• **Cirugía Bariátrica** – Manga gástrica y bypass\\n• **Consulta Preoperatoria** – Evaluación y protocolo\\n• **Seguimiento Postoperatorio** – Acompañamiento en recuperación\\n\\n¿Te gustaría agendar una consulta de evaluación?',\n  }\n}];\n"
+      },
+      "id": "specialties-reply",
+      "name": "Respuesta: Especialidades",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 840]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst intent = data.intent || 'general';\n\nconst responses = {\n  greeting: '¡Hola! Bienvenido al consultorio del Dr. Yamamoto Ishikawa. 👋\\n\\nSoy su asistente virtual. Puedo ayudarte a:\\n\\n• 📅 Agendar una cita\\n• 🕐 Ver horarios de atención\\n• 🩺 Conocer las especialidades\\n• 📍 Obtener información de contacto\\n\\n¿En qué te puedo ayudar?',\n  pricing: 'Para información sobre costos de consulta y procedimientos, te recomendamos contactarnos directamente:\\n\\n📞 **+52 (33) 1234-5678**\\n✉️ **contacto@dryamamoto.mx**\\n\\nCada caso es único y el Dr. Ishikawa prefiere evaluarte primero para darte una estimación precisa. ¿Te gustaría agendar una consulta inicial?',\n  location: '📍 **Ubicación del consultorio:**\\n\\nAv. Américas 1254, Piso 3\\nColonia Ladrón de Guevara\\nGuadalajara, Jalisco, C.P. 44600\\n\\n🚗 Estacionamiento disponible\\n🅿️ Valet parking\\n\\n¿Necesitas más información o te gustaría agendar una cita?',\n  general: 'Entiendo tu mensaje. Puedo ayudarte a:\\n\\n• 📅 **Agendar una cita** – Di \"quiero agendar una cita\"\\n• 🕐 **Horarios** – Di \"cuáles son los horarios\"\\n• 🩺 **Especialidades** – Di \"qué especialidades tienen\"\\n• 📞 **Contacto directo** – +52 (33) 1234-5678\\n\\n¿En qué te puedo ayudar?',\n};\n\nreturn [{\n  json: {\n    output: responses[intent] || responses.general,\n  }\n}];\n"
+      },
+      "id": "general-reply",
+      "name": "Respuesta General / Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 1060]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all possible response paths into a single output\nconst data = $input.first().json;\nreturn [{ json: { output: data.output || 'No pude procesar tu solicitud. Por favor llámanos al +52 (33) 1234-5678.' } }];\n"
+      },
+      "id": "merge-output",
+      "name": "Unificar respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 640]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ output: $json.output }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "webhook-respond",
+      "name": "Responder al Chatbot",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2400, 640]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handler for Google Calendar failures\nconst err = $input.first().json;\nconsole.error('Calendar error:', JSON.stringify(err));\nreturn [{\n  json: {\n    output: 'Tuvimos un problema al registrar tu cita en el calendario. Por favor llámanos directamente al **+52 (33) 1234-5678** para confirmar tu reserva. ¡Disculpa el inconveniente!',\n  }\n}];\n"
+      },
+      "id": "calendar-error",
+      "name": "Error: Calendar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 480]
+    }
+  ],
+  "connections": {
+    "Webhook – Recibir mensaje": {
+      "main": [[{ "node": "Detectar Intención", "type": "main", "index": 0 }]]
+    },
+    "Detectar Intención": {
+      "main": [
+        [{ "node": "¿Es solicitud de cita?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Es solicitud de cita?": {
+      "main": [
+        [{ "node": "Validar datos de cita", "type": "main", "index": 0 }],
+        [{ "node": "¿Pregunta horarios?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Pregunta horarios?": {
+      "main": [
+        [{ "node": "Respuesta: Horarios", "type": "main", "index": 0 }],
+        [{ "node": "¿Especialidades?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Especialidades?": {
+      "main": [
+        [{ "node": "Respuesta: Especialidades", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta General / Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validar datos de cita": {
+      "main": [
+        [{ "node": "¿Datos completos?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Datos completos?": {
+      "main": [
+        [{ "node": "Parsear fecha y hora", "type": "main", "index": 0 }],
+        [{ "node": "Solicitar más información", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsear fecha y hora": {
+      "main": [
+        [{ "node": "Crear evento en Google Calendar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Crear evento en Google Calendar": {
+      "main": [
+        [{ "node": "Mensaje: Cita confirmada", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mensaje: Cita confirmada": {
+      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
+    },
+    "Solicitar más información": {
+      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
+    },
+    "Respuesta: Horarios": {
+      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
+    },
+    "Respuesta: Especialidades": {
+      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
+    },
+    "Respuesta General / Fallback": {
+      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
+    },
+    "Error: Calendar": {
+      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
+    },
+    "Unificar respuesta": {
+      "main": [[{ "node": "Responder al Chatbot", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromAList",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": ["chatbot", "google-calendar", "dr-yamamoto"],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "n8nVersion": "1.40.0"
+  }
+}
