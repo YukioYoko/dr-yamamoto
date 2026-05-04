@@ -243,15 +243,17 @@
     "nodes": [
       {
         "parameters": {
-          "rule": {
-            "interval": [{ "field": "hours", "hoursInterval": 1 }]
-          }
+          "httpMethod": "GET",
+          "path": "colegio-lapaz-posts",
+          "responseMode": "responseNode",
+          "options": {}
         },
         "id": "clp-sm-01",
-        "name": "Cada Hora",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.1,
-        "position": [240, 300]
+        "name": "Webhook – Obtener Posts",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [240, 300],
+        "webhookId": "colegio-lapaz-posts"
       },
       {
         "parameters": {
@@ -292,14 +294,36 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [680, 300]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($input.all().map(i => i.json)) }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                { "name": "Content-Type", "value": "application/json" },
+                { "name": "Access-Control-Allow-Origin", "value": "*" }
+              ]
+            }
+          }
+        },
+        "id": "clp-sm-04",
+        "name": "Responder con Posts",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [900, 300]
       }
     ],
     "connections": {
-      "Cada Hora": {
+      "Webhook – Obtener Posts": {
         "main": [[{ "node": "Obtener Posts – Meta API", "type": "main", "index": 0 }]]
       },
       "Obtener Posts – Meta API": {
         "main": [[{ "node": "Transformar Publicaciones", "type": "main", "index": 0 }]]
+      },
+      "Transformar Publicaciones": {
+        "main": [[{ "node": "Responder con Posts", "type": "main", "index": 0 }]]
       }
     },
     "active": false,
