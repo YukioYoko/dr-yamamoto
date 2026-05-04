@@ -1,344 +1,318 @@
-{
-  "name": "Dr. Yamamoto – Chatbot + Google Calendar",
-  "nodes": [
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "dr-yamamoto-chat",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "webhook-trigger",
-      "name": "Webhook – Recibir mensaje",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [240, 400],
-      "webhookId": "dr-yamamoto-chat"
-    },
-    {
-      "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').toLowerCase().trim();\nconst sessionId = body.sessionId || 'default';\n\n// Detect intent\nlet intent = 'general';\n\nif (\n  message.includes('cita') ||\n  message.includes('agendar') ||\n  message.includes('reservar') ||\n  message.includes('consulta') ||\n  message.includes('appointment')\n) {\n  intent = 'booking';\n} else if (\n  message.includes('horario') ||\n  message.includes('hora') ||\n  message.includes('disponib') ||\n  message.includes('cuando') ||\n  message.includes('cuándo')\n) {\n  intent = 'schedule';\n} else if (\n  message.includes('especialidad') ||\n  message.includes('cirugía') ||\n  message.includes('cirugia') ||\n  message.includes('servicio') ||\n  message.includes('qué hace') ||\n  message.includes('que hace')\n) {\n  intent = 'specialties';\n} else if (\n  message.includes('precio') ||\n  message.includes('costo') ||\n  message.includes('cuánto') ||\n  message.includes('cuanto') ||\n  message.includes('tarifa')\n) {\n  intent = 'pricing';\n} else if (\n  message.includes('ubicacion') ||\n  message.includes('ubicación') ||\n  message.includes('dirección') ||\n  message.includes('donde') ||\n  message.includes('dónde')\n) {\n  intent = 'location';\n} else if (\n  message.includes('hola') ||\n  message.includes('buenos') ||\n  message.includes('buenas') ||\n  message.includes('hey')\n) {\n  intent = 'greeting';\n}\n\n// Extract date/time hints\nconst datePatterns = [\n  /\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4}/,\n  /lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado/i,\n  /mañana|pasado mañana|hoy/i,\n  /(\\d{1,2})\\s*(am|pm|de la mañana|de la tarde)/i,\n];\nlet dateHint = null;\nfor (const pattern of datePatterns) {\n  const match = message.match(pattern);\n  if (match) { dateHint = match[0]; break; }\n}\n\n// Extract name hint (after 'me llamo' or 'soy')\nconst nameMatch = message.match(/(?:me llamo|soy|mi nombre es)\\s+([A-ZÁÉÍÓÚÑa-záéíóúñ ]+)/i);\nconst nameHint = nameMatch ? nameMatch[1].trim() : null;\n\n// Extract phone\nconst phoneMatch = message.match(/(\\+?\\d[\\d\\s\\-\\.]{8,15}\\d)/);\nconst phoneHint = phoneMatch ? phoneMatch[1] : null;\n\nreturn [{\n  json: {\n    originalMessage: body.message,\n    sessionId,\n    intent,\n    dateHint,\n    nameHint,\n    phoneHint,\n    lowerMessage: message,\n  }\n}];\n"
-      },
-      "id": "intent-detector",
-      "name": "Detectar Intención",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 400]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "leftValue": "={{ $json.intent }}",
-              "rightValue": "booking",
-              "operator": { "type": "string", "operation": "equals" }
-            }
-          ],
-          "combinator": "and"
+[
+  {
+    "name": "Colegio La Paz – Chatbot",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "colegio-lapaz-chat",
+          "responseMode": "responseNode",
+          "options": {}
         },
-        "options": {}
+        "id": "clp-c-01",
+        "name": "Webhook – Recibir Mensaje",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [240, 300],
+        "webhookId": "colegio-lapaz-chat"
       },
-      "id": "is-booking",
-      "name": "¿Es solicitud de cita?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [720, 400]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "leftValue": "={{ $json.intent }}",
-              "rightValue": "schedule",
-              "operator": { "type": "string", "operation": "equals" }
-            }
-          ],
-          "combinator": "and"
+      {
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').toLowerCase().trim();\nconst sessionId = body.sessionId || 'default';\n\nconst directIntents = [\n  'admission','academic','contact','custom','back',\n  'maternal','preescolar','primaria','secundaria',\n  'bilingual','programs','axes','technology',\n  'schedule_yes','schedule_no','admission_schedule'\n];\n\nlet intent = directIntents.includes(message) ? message : null;\n\nif (!intent) {\n  if (/admisio|admision|inscripci/.test(message)) intent = 'admission';\n  else if (/academi|estudio|oferta|programa/.test(message)) intent = 'academic';\n  else if (/contacto|telefono|direccion|donde|ubicacion/.test(message)) intent = 'contact';\n  else if (/hola|buenos|buenas|hey|hi/.test(message)) intent = 'back';\n  else intent = 'custom';\n}\n\nreturn [{ json: { intent, sessionId, originalMessage: body.message || message } }];"
         },
-        "options": {}
+        "id": "clp-c-02",
+        "name": "Detectar Intención",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [480, 300]
       },
-      "id": "is-schedule",
-      "name": "¿Pregunta horarios?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [720, 620]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": false },
-          "conditions": [
-            {
-              "leftValue": "={{ $json.intent }}",
-              "rightValue": "specialties",
-              "operator": { "type": "string", "operation": "equals" }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "is-specialties",
-      "name": "¿Especialidades?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [720, 840]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Check if we have enough info to create the appointment\nconst data = $input.first().json;\nconst hasDate = !!data.dateHint;\nconst hasName = !!data.nameHint;\nconst hasPhone = !!data.phoneHint;\n\nif (!hasName && !hasDate) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: '¡Con mucho gusto agendo tu cita! 📅\\n\\nNecesito algunos datos:\\n\\n• **Tu nombre completo**\\n• **Fecha y hora preferida** (Lu–Sa, 10am–7pm)\\n• **Tu número de teléfono**\\n\\nPor ejemplo: \"Me llamo Juan Pérez, quiero el martes a las 11am, mi teléfono es 33 1234 5678\"',\n    }\n  }];\n}\n\nif (!hasDate) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: `Gracias ${data.nameHint || ''}. ¿Qué fecha y hora prefieres para tu cita? 📅\\n\\nAtendemos **lunes a sábado de 10:00 am a 7:00 pm**.`,\n    }\n  }];\n}\n\nif (!hasName) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: `Perfecto, anotado para el ${data.dateHint}. ¿Me puedes dar tu nombre completo y número de teléfono para confirmar la cita?`,\n    }\n  }];\n}\n\n// We have enough info\nreturn [{\n  json: {\n    ...data,\n    readyToBook: true,\n    output: null,\n  }\n}];\n"
-      },
-      "id": "validate-booking-data",
-      "name": "Validar datos de cita",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
+      {
+        "parameters": {
+          "mode": "rules",
           "options": {},
-          "conditions": [
-            {
-              "leftValue": "={{ $json.readyToBook }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true" }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "ready-to-book",
-      "name": "¿Datos completos?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [1200, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "const data = $input.first().json;\n\n// Parse the date hint into an actual datetime\n// This is a simplified parser — in production connect to an AI node for NLP\nconst today = new Date();\nconst dayMap = {\n  'lunes': 1, 'martes': 2, 'miércoles': 3, 'miercoles': 3,\n  'jueves': 4, 'viernes': 5, 'sábado': 6, 'sabado': 6\n};\n\nlet targetDate = new Date();\n\nconst hint = (data.dateHint || '').toLowerCase();\n\n// Check for day names\nfor (const [dayName, dayNum] of Object.entries(dayMap)) {\n  if (hint.includes(dayName)) {\n    const diff = (dayNum - today.getDay() + 7) % 7 || 7;\n    targetDate = new Date(today);\n    targetDate.setDate(today.getDate() + diff);\n    break;\n  }\n}\n\n// Check for mañana\nif (hint.includes('mañana')) {\n  targetDate = new Date(today);\n  targetDate.setDate(today.getDate() + 1);\n}\n\n// Default time: 10am if none specified\nlet hour = 10;\nconst hourMatch = hint.match(/(\\d{1,2})\\s*(pm|am)?/);\nif (hourMatch) {\n  hour = parseInt(hourMatch[1]);\n  if (hourMatch[2] === 'pm' && hour < 12) hour += 12;\n}\n\n// Clamp to business hours 10–19\nhour = Math.max(10, Math.min(19, hour));\n\ntargetDate.setHours(hour, 0, 0, 0);\nconst endDate = new Date(targetDate);\nendDate.setHours(hour + 1, 0, 0, 0);\n\n// Validate: no Sundays\nif (targetDate.getDay() === 0) {\n  return [{\n    json: {\n      ...data,\n      readyToBook: false,\n      output: 'Lo sentimos, los domingos no tenemos consulta. Atendemos **lunes a sábado de 10:00 am a 7:00 pm**. ¿Te acomoda otro día?',\n    }\n  }];\n}\n\nconst dateISO = targetDate.toISOString();\nconst endISO = endDate.toISOString();\nconst friendlyDate = targetDate.toLocaleDateString('es-MX', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\nconst friendlyTime = targetDate.toLocaleTimeString('es-MX', {\n  hour: '2-digit', minute: '2-digit'\n});\n\nreturn [{\n  json: {\n    ...data,\n    dateISO,\n    endISO,\n    friendlyDate,\n    friendlyTime,\n    calendarSummary: `Consulta – ${data.nameHint || 'Paciente'}`,\n    calendarDescription: `Paciente: ${data.nameHint || 'N/D'}\\nTeléfono: ${data.phoneHint || 'N/D'}\\nAgendado vía chatbot web.`,\n  }\n}];\n"
-      },
-      "id": "parse-datetime",
-      "name": "Parsear fecha y hora",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1440, 240]
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "event",
-        "operation": "create",
-        "calendarId": {
-          "__rl": true,
-          "value": "primary",
-          "mode": "list",
-          "cachedResultName": "primary"
-        },
-        "start": "={{ $json.dateISO }}",
-        "end": "={{ $json.endISO }}",
-        "additionalFields": {
-          "summary": "={{ $json.calendarSummary }}",
-          "description": "={{ $json.calendarDescription }}",
-          "location": "Av. Américas 1254, Piso 3, Guadalajara, Jalisco",
-          "colorId": "5",
-          "attendees": [],
-          "reminders": {
-            "useDefault": false,
-            "overrides": [
-              { "method": "email", "minutes": 1440 },
-              { "method": "popup", "minutes": 60 }
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+                  "conditions": [
+                    { "id": "r1", "leftValue": "={{ $json.intent }}", "rightValue": "admission", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": false
+              },
+              {
+                "conditions": {
+                  "options": { "caseSensitive": false },
+                  "conditions": [
+                    { "id": "r2a", "leftValue": "={{ $json.intent }}", "rightValue": "maternal",   "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r2b", "leftValue": "={{ $json.intent }}", "rightValue": "preescolar", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r2c", "leftValue": "={{ $json.intent }}", "rightValue": "primaria",   "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r2d", "leftValue": "={{ $json.intent }}", "rightValue": "secundaria", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } }
+                  ],
+                  "combinator": "or"
+                },
+                "renameOutput": false
+              },
+              {
+                "conditions": {
+                  "options": { "caseSensitive": false },
+                  "conditions": [
+                    { "id": "r3", "leftValue": "={{ $json.intent }}", "rightValue": "academic", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": false
+              },
+              {
+                "conditions": {
+                  "options": { "caseSensitive": false },
+                  "conditions": [
+                    { "id": "r4a", "leftValue": "={{ $json.intent }}", "rightValue": "bilingual",  "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r4b", "leftValue": "={{ $json.intent }}", "rightValue": "programs",   "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r4c", "leftValue": "={{ $json.intent }}", "rightValue": "axes",       "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r4d", "leftValue": "={{ $json.intent }}", "rightValue": "technology", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } }
+                  ],
+                  "combinator": "or"
+                },
+                "renameOutput": false
+              },
+              {
+                "conditions": {
+                  "options": { "caseSensitive": false },
+                  "conditions": [
+                    { "id": "r5a", "leftValue": "={{ $json.intent }}", "rightValue": "contact",            "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } },
+                    { "id": "r5b", "leftValue": "={{ $json.intent }}", "rightValue": "admission_schedule", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } }
+                  ],
+                  "combinator": "or"
+                },
+                "renameOutput": false
+              },
+              {
+                "conditions": {
+                  "options": { "caseSensitive": false },
+                  "conditions": [
+                    { "id": "r6", "leftValue": "={{ $json.intent }}", "rightValue": "schedule_yes", "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" } }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": false
+              }
             ]
-          }
-        }
+          },
+          "fallbackOutput": "extra"
+        },
+        "id": "clp-c-03",
+        "name": "Enrutar por Intención",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [720, 300]
       },
-      "id": "google-calendar-create",
-      "name": "Crear evento en Google Calendar",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.1,
-      "position": [1680, 240],
-      "credentials": {
-        "googleCalendarOAuth2Api": {
-          "id": "REEMPLAZA_CON_TU_CREDENTIAL_ID",
-          "name": "Google Calendar – Dr. Yamamoto"
-        }
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { output: { text: '¿Cuál es el nivel que te interesa?', options: [{ id: 'maternal', label: '🍼 Maternal' }, { id: 'preescolar', label: '🎨 Preescolar' }, { id: 'primaria', label: '📚 Primaria' }, { id: 'secundaria', label: '🎓 Secundaria' }, { id: 'back', label: '← Atrás' }] } } }];"
+        },
+        "id": "clp-c-04",
+        "name": "Respuesta: Admisión",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 60]
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nconst levels = {\n  maternal:   { name: 'Maternal',   phone: '+52 (333) 831-7000 Ext. 101', desc: 'Estimulación temprana y desarrollo integral en ambiente bilingüe.' },\n  preescolar: { name: 'Preescolar', phone: '+52 (333) 831-7000 Ext. 102', desc: 'Exploración y desarrollo de habilidades con inglés Cambridge.' },\n  primaria:   { name: 'Primaria',   phone: '+52 (333) 831-7000 Ext. 103', desc: 'Educación competencial con bilingüismo avanzado y tecnología educativa.' },\n  secundaria: { name: 'Secundaria', phone: '+52 (333) 831-7000 Ext. 104', desc: 'Preparación para educación superior con acreditación Cambridge.' }\n};\nconst l = levels[data.intent] || { name: data.intent, phone: '+52 (333) 831-7000', desc: '' };\nconst text = 'Excelente, te interesa ' + l.name + '.\\n\\n' + l.desc + '\\n\\n📞 ' + l.phone + '\\n\\n¿Te gustaría agendar una visita para conocer más?';\nreturn [{ json: { output: { text, options: [{ id: 'schedule_yes', label: '✅ Sí, agendar visita' }, { id: 'schedule_no', label: '❌ No, otra pregunta' }] } } }];"
+        },
+        "id": "clp-c-05",
+        "name": "Respuesta: Nivel",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 200]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { output: { text: '¿Sobre qué te gustaría saber?', options: [{ id: 'bilingual', label: '🌍 Educación Bilingüe' }, { id: 'programs', label: '⭐ Programas Especiales' }, { id: 'axes', label: '🎯 Ejes Pedagógicos' }, { id: 'technology', label: '💻 Tecnología' }, { id: 'back', label: '← Atrás' }] } } }];"
+        },
+        "id": "clp-c-06",
+        "name": "Respuesta: Académica",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 340]
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nconst responses = {\n  bilingual:  'Ofrecemos educación bilingüe con acreditación Cambridge en todos los niveles. Nuestros alumnos obtienen certificados oficiales y competencias lingüísticas avanzadas.',\n  programs:   'Contamos con Cambridge English, intercambios internacionales, liderazgo estudiantil y talleres de tecnología y coding.',\n  axes:       'Nuestros 4 ejes pedagógicos:\\n\\n📖 Académico – Excelencia en todas las disciplinas\\n🌍 Multicultural – Comprensión global y diversidad\\n🤝 Socioemocional – Desarrollo integral del ser\\n💻 Ciudadanía Digital – Tecnología responsable',\n  technology: 'Utilizamos plataformas de aprendizaje digital, laboratorios especializados y enseñamos pensamiento computacional desde edades tempranas.'\n};\nconst text = responses[data.intent] || 'Gracias por tu pregunta.';\nreturn [{ json: { output: { text, options: [{ id: 'admission', label: '📝 Admisión' }, { id: 'contact', label: '📍 Contacto' }, { id: 'back', label: '← Atrás' }] } } }];"
+        },
+        "id": "clp-c-07",
+        "name": "Respuesta: Tema Académico",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 480]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { output: { text: 'Información de Contacto:\\n\\n📞 +52 (333) 831-7000\\n📧 info@lapaz.edu.mx\\n📍 Guadalajara, Jalisco\\n⏰ Lunes a Viernes: 8:00 AM – 4:00 PM\\n\\n¿Necesitas algo más?', options: [{ id: 'admission_schedule', label: '📅 Agendar Visita' }, { id: 'back', label: '← Menú Principal' }] } } }];"
+        },
+        "id": "clp-c-08",
+        "name": "Respuesta: Contacto",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 620]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { output: { text: '¡Perfecto! Para agendar tu visita al Colegio La Paz:\\n\\n📞 +52 (333) 831-7000\\n📧 admisiones@lapaz.edu.mx\\n\\nO visita nuestra sección de Admisiones para llenar el formulario en línea.\\n\\n¡El equipo estará encantado de atenderte! 🎓', options: [{ id: 'admission', label: '📝 Más sobre Admisión' }, { id: 'back', label: '← Menú Principal' }] } } }];"
+        },
+        "id": "clp-c-09",
+        "name": "Respuesta: Agendar",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 760]
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nconst isCustom = data.intent === 'custom';\nconst text = isCustom\n  ? 'Gracias por tu mensaje. Para una respuesta más detallada, contáctanos directamente:\\n\\n📞 +52 (333) 831-7000\\n📧 info@lapaz.edu.mx\\n\\n¿En qué más puedo ayudarte?'\n  : '¡Hola! Soy el asistente del Colegio La Paz. ¿En qué puedo ayudarte?';\nreturn [{ json: { output: { text, options: [{ id: 'admission', label: '📝 Admisión' }, { id: 'academic', label: '📚 Información Académica' }, { id: 'contact', label: '📍 Contacto' }, { id: 'custom', label: '💬 Otra Pregunta' }] } } }];"
+        },
+        "id": "clp-c-10",
+        "name": "Respuesta: Menú Principal",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 900]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json.output) }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                { "name": "Content-Type", "value": "application/json" },
+                { "name": "Access-Control-Allow-Origin", "value": "*" }
+              ]
+            }
+          }
+        },
+        "id": "clp-c-11",
+        "name": "Responder al Usuario",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [1200, 480]
+      }
+    ],
+    "connections": {
+      "Webhook – Recibir Mensaje": {
+        "main": [[{ "node": "Detectar Intención", "type": "main", "index": 0 }]]
+      },
+      "Detectar Intención": {
+        "main": [[{ "node": "Enrutar por Intención", "type": "main", "index": 0 }]]
+      },
+      "Enrutar por Intención": {
+        "main": [
+          [{ "node": "Respuesta: Admisión",      "type": "main", "index": 0 }],
+          [{ "node": "Respuesta: Nivel",          "type": "main", "index": 0 }],
+          [{ "node": "Respuesta: Académica",      "type": "main", "index": 0 }],
+          [{ "node": "Respuesta: Tema Académico", "type": "main", "index": 0 }],
+          [{ "node": "Respuesta: Contacto",       "type": "main", "index": 0 }],
+          [{ "node": "Respuesta: Agendar",        "type": "main", "index": 0 }],
+          [{ "node": "Respuesta: Menú Principal", "type": "main", "index": 0 }]
+        ]
+      },
+      "Respuesta: Admisión":      { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] },
+      "Respuesta: Nivel":          { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] },
+      "Respuesta: Académica":      { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] },
+      "Respuesta: Tema Académico": { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] },
+      "Respuesta: Contacto":       { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] },
+      "Respuesta: Agendar":        { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] },
+      "Respuesta: Menú Principal": { "main": [[{ "node": "Responder al Usuario", "type": "main", "index": 0 }]] }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "errorWorkflow": ""
+    },
+    "staticData": null,
+    "tags": ["chatbot", "colegio-lapaz"],
+    "meta": {
+      "templateCredsSetupCompleted": false,
+      "n8nVersion": "1.40.0"
+    }
+  },
+  {
+    "name": "Colegio La Paz – Publicaciones Meta",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [{ "field": "hours", "hoursInterval": 1 }]
+          }
+        },
+        "id": "clp-sm-01",
+        "name": "Cada Hora",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.1,
+        "position": [240, 300]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ 'https://graph.facebook.com/v19.0/' + $env.FB_PAGE_ID + '/posts' }}",
+          "authentication": "none",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "fields",
+                "value": "id,message,created_time,attachments{media,subattachments,type},likes.summary(true),comments.summary(true)"
+              },
+              {
+                "name": "limit",
+                "value": "10"
+              },
+              {
+                "name": "access_token",
+                "value": "={{ $env.FB_PAGE_ACCESS_TOKEN }}"
+              }
+            ]
+          },
+          "options": { "timeout": 15000 }
+        },
+        "id": "clp-sm-02",
+        "name": "Obtener Posts – Meta API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [460, 300]
+      },
+      {
+        "parameters": {
+          "jsCode": "const raw = $input.first().json;\nconst posts = (raw.data || []).slice(0, 6);\n\nconst classify = (msg) => {\n  const m = (msg || '').toLowerCase();\n  if (/evento|acto|ceremonia|festival|feria|graduaci|clausura|apertura|inauguraci/.test(m)) return 'event';\n  if (/logro|campe|premio|medalla|triunfo|reconocimiento|primer lugar/.test(m)) return 'achievement';\n  return 'news';\n};\n\nconst fmtDate = iso => iso ? iso.split('T')[0] : '';\n\nconst getImage = att => {\n  if (!att || !att.data || !att.data[0]) return '';\n  const d = att.data[0];\n  if (d.media && d.media.image && d.media.image.src) return d.media.image.src;\n  const sub = d.subattachments && d.subattachments.data && d.subattachments.data[0];\n  if (sub && sub.media && sub.media.image && sub.media.image.src) return sub.media.image.src;\n  return '';\n};\n\nconst result = posts.map((p, i) => {\n  const msg   = (p.message || '').trim();\n  const lines = msg.split('\\n').filter(l => l.trim());\n  const title = (lines[0] || ('Publicación ' + (i + 1))).substring(0, 80);\n  const excerpt = msg.length > 140 ? msg.substring(0, 137) + '...' : msg;\n  return {\n    id:       i + 1,\n    title,\n    date:     fmtDate(p.created_time),\n    platform: 'facebook',\n    image:    getImage(p.attachments),\n    excerpt,\n    likes:    (p.likes && p.likes.summary    ? p.likes.summary.total_count    : 0),\n    comments: (p.comments && p.comments.summary ? p.comments.summary.total_count : 0),\n    type:     classify(msg)\n  };\n});\n\nreturn result.map(item => ({ json: item }));"
+        },
+        "id": "clp-sm-03",
+        "name": "Transformar Publicaciones",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [680, 300]
+      }
+    ],
+    "connections": {
+      "Cada Hora": {
+        "main": [[{ "node": "Obtener Posts – Meta API", "type": "main", "index": 0 }]]
+      },
+      "Obtener Posts – Meta API": {
+        "main": [[{ "node": "Transformar Publicaciones", "type": "main", "index": 0 }]]
       }
     },
-    {
-      "parameters": {
-        "jsCode": "const data = $input.first().json;\nconst name = data.nameHint || 'Estimado paciente';\nconst date = data.friendlyDate || 'la fecha solicitada';\nconst time = data.friendlyTime || '';\n\nreturn [{\n  json: {\n    output: `✅ ¡Cita agendada exitosamente, ${name}!\\n\\n📅 **${date}**\\n🕐 **${time}**\\n📍 Av. Américas 1254, Piso 3, Guadalajara\\n\\nRecibirás un recordatorio por correo 24 horas antes. Si necesitas reagendar o cancelar, llámanos al +52 (33) 1234-5678.\\n\\n¡El Dr. Yamamoto Ishikawa los espera! 🩺`,\n  }\n}];\n"
-      },
-      "id": "booking-success-msg",
-      "name": "Mensaje: Cita confirmada",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1920, 240]
+    "active": false,
+    "settings": {
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "errorWorkflow": ""
     },
-    {
-      "parameters": {
-        "jsCode": "const data = $input.first().json;\nreturn [{\n  json: {\n    output: data.output || '¿Podría proporcionarme más detalles para continuar con tu cita?',\n  }\n}];\n"
-      },
-      "id": "ask-more-info",
-      "name": "Solicitar más información",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1440, 380]
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{\n  json: {\n    output: '🕐 **Horarios de atención:**\\n\\n• Lunes – Viernes: 10:00 am – 7:00 pm\\n• Sábado: 10:00 am – 3:00 pm\\n• Domingo: Cerrado\\n\\n📍 Av. Américas 1254, Piso 3, Guadalajara, Jalisco\\n📞 +52 (33) 1234-5678\\n\\n¿Te gustaría agendar una cita?',\n  }\n}];\n"
-      },
-      "id": "schedule-reply",
-      "name": "Respuesta: Horarios",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 620]
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{\n  json: {\n    output: '🩺 **Especialidades del Dr. Yamamoto Ishikawa:**\\n\\n• **Cirugía General** – Procedimientos de alta complejidad\\n• **Cirugía Laparoscópica** – Vesícula, apéndice, colon y más\\n• **Cirugía de Urgencias** – Atención inmediata 24/7\\n• **Cirugía Bariátrica** – Manga gástrica y bypass\\n• **Consulta Preoperatoria** – Evaluación y protocolo\\n• **Seguimiento Postoperatorio** – Acompañamiento en recuperación\\n\\n¿Te gustaría agendar una consulta de evaluación?',\n  }\n}];\n"
-      },
-      "id": "specialties-reply",
-      "name": "Respuesta: Especialidades",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 840]
-    },
-    {
-      "parameters": {
-        "jsCode": "const data = $input.first().json;\nconst intent = data.intent || 'general';\n\nconst responses = {\n  greeting: '¡Hola! Bienvenido al consultorio del Dr. Yamamoto Ishikawa. 👋\\n\\nSoy su asistente virtual. Puedo ayudarte a:\\n\\n• 📅 Agendar una cita\\n• 🕐 Ver horarios de atención\\n• 🩺 Conocer las especialidades\\n• 📍 Obtener información de contacto\\n\\n¿En qué te puedo ayudar?',\n  pricing: 'Para información sobre costos de consulta y procedimientos, te recomendamos contactarnos directamente:\\n\\n📞 **+52 (33) 1234-5678**\\n✉️ **contacto@dryamamoto.mx**\\n\\nCada caso es único y el Dr. Ishikawa prefiere evaluarte primero para darte una estimación precisa. ¿Te gustaría agendar una consulta inicial?',\n  location: '📍 **Ubicación del consultorio:**\\n\\nAv. Américas 1254, Piso 3\\nColonia Ladrón de Guevara\\nGuadalajara, Jalisco, C.P. 44600\\n\\n🚗 Estacionamiento disponible\\n🅿️ Valet parking\\n\\n¿Necesitas más información o te gustaría agendar una cita?',\n  general: 'Entiendo tu mensaje. Puedo ayudarte a:\\n\\n• 📅 **Agendar una cita** – Di \"quiero agendar una cita\"\\n• 🕐 **Horarios** – Di \"cuáles son los horarios\"\\n• 🩺 **Especialidades** – Di \"qué especialidades tienen\"\\n• 📞 **Contacto directo** – +52 (33) 1234-5678\\n\\n¿En qué te puedo ayudar?',\n};\n\nreturn [{\n  json: {\n    output: responses[intent] || responses.general,\n  }\n}];\n"
-      },
-      "id": "general-reply",
-      "name": "Respuesta General / Fallback",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 1060]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Merge all possible response paths into a single output\nconst data = $input.first().json;\nreturn [{ json: { output: data.output || 'No pude procesar tu solicitud. Por favor llámanos al +52 (33) 1234-5678.' } }];\n"
-      },
-      "id": "merge-output",
-      "name": "Unificar respuesta",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2160, 640]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ output: $json.output }) }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              { "name": "Content-Type", "value": "application/json" },
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
-            ]
-          }
-        }
-      },
-      "id": "webhook-respond",
-      "name": "Responder al Chatbot",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [2400, 640]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Error handler for Google Calendar failures\nconst err = $input.first().json;\nconsole.error('Calendar error:', JSON.stringify(err));\nreturn [{\n  json: {\n    output: 'Tuvimos un problema al registrar tu cita en el calendario. Por favor llámanos directamente al **+52 (33) 1234-5678** para confirmar tu reserva. ¡Disculpa el inconveniente!',\n  }\n}];\n"
-      },
-      "id": "calendar-error",
-      "name": "Error: Calendar",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1920, 480]
+    "staticData": null,
+    "tags": ["meta-api", "colegio-lapaz"],
+    "meta": {
+      "templateCredsSetupCompleted": false,
+      "n8nVersion": "1.40.0"
     }
-  ],
-  "connections": {
-    "Webhook – Recibir mensaje": {
-      "main": [[{ "node": "Detectar Intención", "type": "main", "index": 0 }]]
-    },
-    "Detectar Intención": {
-      "main": [
-        [{ "node": "¿Es solicitud de cita?", "type": "main", "index": 0 }]
-      ]
-    },
-    "¿Es solicitud de cita?": {
-      "main": [
-        [{ "node": "Validar datos de cita", "type": "main", "index": 0 }],
-        [{ "node": "¿Pregunta horarios?", "type": "main", "index": 0 }]
-      ]
-    },
-    "¿Pregunta horarios?": {
-      "main": [
-        [{ "node": "Respuesta: Horarios", "type": "main", "index": 0 }],
-        [{ "node": "¿Especialidades?", "type": "main", "index": 0 }]
-      ]
-    },
-    "¿Especialidades?": {
-      "main": [
-        [{ "node": "Respuesta: Especialidades", "type": "main", "index": 0 }],
-        [{ "node": "Respuesta General / Fallback", "type": "main", "index": 0 }]
-      ]
-    },
-    "Validar datos de cita": {
-      "main": [
-        [{ "node": "¿Datos completos?", "type": "main", "index": 0 }]
-      ]
-    },
-    "¿Datos completos?": {
-      "main": [
-        [{ "node": "Parsear fecha y hora", "type": "main", "index": 0 }],
-        [{ "node": "Solicitar más información", "type": "main", "index": 0 }]
-      ]
-    },
-    "Parsear fecha y hora": {
-      "main": [
-        [{ "node": "Crear evento en Google Calendar", "type": "main", "index": 0 }]
-      ]
-    },
-    "Crear evento en Google Calendar": {
-      "main": [
-        [{ "node": "Mensaje: Cita confirmada", "type": "main", "index": 0 }]
-      ]
-    },
-    "Mensaje: Cita confirmada": {
-      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
-    },
-    "Solicitar más información": {
-      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
-    },
-    "Respuesta: Horarios": {
-      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
-    },
-    "Respuesta: Especialidades": {
-      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
-    },
-    "Respuesta General / Fallback": {
-      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
-    },
-    "Error: Calendar": {
-      "main": [[{ "node": "Unificar respuesta", "type": "main", "index": 0 }]]
-    },
-    "Unificar respuesta": {
-      "main": [[{ "node": "Responder al Chatbot", "type": "main", "index": 0 }]]
-    }
-  },
-  "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromAList",
-    "errorWorkflow": ""
-  },
-  "staticData": null,
-  "tags": ["chatbot", "google-calendar", "dr-yamamoto"],
-  "meta": {
-    "templateCredsSetupCompleted": false,
-    "n8nVersion": "1.40.0"
   }
-}
+]
