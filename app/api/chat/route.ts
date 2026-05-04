@@ -1,23 +1,46 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-const N8N_WEBHOOK = process.env.N8N_WEBHOOK_URL!;
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const { message, sessionId } = await request.json();
 
-    const res = await fetch(N8N_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    if (!message || !message.trim()) {
+      return NextResponse.json(
+        { output: 'Por favor escribe tu pregunta' },
+        { status: 400 }
+      );
+    }
+
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/colegio-lapaz-chat';
+
+    const n8nResponse = await fetch(n8nWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        sessionId: sessionId || 'default',
+        timestamp: new Date().toISOString(),
+      }),
     });
 
-    const data = await res.json();
+    if (!n8nResponse.ok) {
+      console.error('Error en n8n:', n8nResponse.statusText);
+      return NextResponse.json(
+        {
+          output: 'Lo sentimos, hubo un problema procesando tu pregunta. Por favor contacta a admisiones directamente al +52 (333) 831-7000',
+        },
+        { status: 200 }
+      );
+    }
+
+    const data = await n8nResponse.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("n8n proxy error:", error);
+    console.error('Error en API de chat:', error);
     return NextResponse.json(
-      { error: "Failed to reach chatbot service" },
+      {
+        output: 'Error interno del servidor. Por favor intenta más tarde.',
+      },
       { status: 500 }
     );
   }
