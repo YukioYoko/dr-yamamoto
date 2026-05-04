@@ -80,12 +80,10 @@ export default function AcademicOffer() {
 
         <div className="text-center">
           <a
-            href="https://wa.me/5233318317000?text=Hola%2C%20solicito%20información%20sobre%20las%20opciones%20de%20inscripción"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/oferta-academica"
             className="inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition shadow-lg"
           >
-            📱 Pide Informes por WhatsApp
+            Ver Oferta Académica Completa
           </a>
         </div>
       </div>

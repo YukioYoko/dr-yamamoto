@@ -38,9 +38,9 @@ export default function Admissions() {
           <p className="mb-6 text-blue-100">
             Completa nuestro formulario de admisión y nos pondremos en contacto pronto
           </p>
-          <button className="bg-white text-blue-900 font-bold py-2 px-6 rounded-lg hover:bg-blue-50 transition">
-            Iniciar Proceso de Admisión
-          </button>
+          <a href="/admisiones" className="inline-block bg-white text-blue-900 font-bold py-2 px-6 rounded-lg hover:bg-blue-50 transition">
+            Ir a Admisiones
+          </a>
         </div>
       </div>
     </section>

@@ -12,16 +12,16 @@ export default function Navbar() {
         <div className="text-2xl font-bold text-blue-900">La Paz</div>
 
         <div className="hidden md:flex gap-6">
-          <a href="#" className="text-gray-700 hover:text-blue-600 transition">
+          <a href="/" className="text-gray-700 hover:text-blue-600 transition">
             Inicio
           </a>
-          <a href="#" className="text-gray-700 hover:text-blue-600 transition">
+          <a href="/oferta-academica" className="text-gray-700 hover:text-blue-600 transition">
             Oferta Académica
           </a>
-          <a href="#" className="text-gray-700 hover:text-blue-600 transition">
+          <a href="/admisiones" className="text-gray-700 hover:text-blue-600 transition">
             Admisiones
           </a>
-          <a href="#" className="text-gray-700 hover:text-blue-600 transition">
+          <a href="/contacto" className="text-gray-700 hover:text-blue-600 transition">
             Contacto
           </a>
         </div>
@@ -45,16 +45,16 @@ export default function Navbar() {
 
       {isOpen && (
         <div className="md:hidden bg-blue-50 p-4 space-y-2">
-          <a href="#" className="block text-gray-700 hover:text-blue-600 py-2">
+          <a href="/" className="block text-gray-700 hover:text-blue-600 py-2">
             Inicio
           </a>
-          <a href="#" className="block text-gray-700 hover:text-blue-600 py-2">
+          <a href="/oferta-academica" className="block text-gray-700 hover:text-blue-600 py-2">
             Oferta Académica
           </a>
-          <a href="#" className="block text-gray-700 hover:text-blue-600 py-2">
+          <a href="/admisiones" className="block text-gray-700 hover:text-blue-600 py-2">
             Admisiones
           </a>
-          <a href="#" className="block text-gray-700 hover:text-blue-600 py-2">
+          <a href="/contacto" className="block text-gray-700 hover:text-blue-600 py-2">
             Contacto
           </a>
           <a
