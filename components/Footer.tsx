@@ -10,12 +10,12 @@ export default function Footer() {
         </div>
 
         <div>
-          <h4 className="font-bold mb-3">Niveles</h4>
+          <h4 className="font-bold mb-3">Navegación</h4>
           <ul className="text-sm space-y-1 text-blue-100">
-            <li>Maternal</li>
-            <li>Preescolar</li>
-            <li>Primaria</li>
-            <li>Secundaria</li>
+            <li><a href="/oferta-academica" className="hover:text-white transition">Oferta Académica</a></li>
+            <li><a href="/nosotros" className="hover:text-white transition">Nosotros</a></li>
+            <li><a href="/noticias" className="hover:text-white transition">Noticias</a></li>
+            <li><a href="/admisiones" className="hover:text-white transition">Admisiones</a></li>
           </ul>
         </div>
 

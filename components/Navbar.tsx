@@ -18,6 +18,12 @@ export default function Navbar() {
           <a href="/oferta-academica" className="text-gray-700 hover:text-blue-600 transition">
             Oferta Académica
           </a>
+          <a href="/nosotros" className="text-gray-700 hover:text-blue-600 transition">
+            Nosotros
+          </a>
+          <a href="/noticias" className="text-gray-700 hover:text-blue-600 transition">
+            Noticias
+          </a>
           <a href="/admisiones" className="text-gray-700 hover:text-blue-600 transition">
             Admisiones
           </a>
@@ -50,6 +56,12 @@ export default function Navbar() {
           </a>
           <a href="/oferta-academica" className="block text-gray-700 hover:text-blue-600 py-2">
             Oferta Académica
+          </a>
+          <a href="/nosotros" className="block text-gray-700 hover:text-blue-600 py-2">
+            Nosotros
+          </a>
+          <a href="/noticias" className="block text-gray-700 hover:text-blue-600 py-2">
+            Noticias
           </a>
           <a href="/admisiones" className="block text-gray-700 hover:text-blue-600 py-2">
             Admisiones
